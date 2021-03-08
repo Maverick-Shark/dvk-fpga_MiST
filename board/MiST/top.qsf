@@ -1,0 +1,203 @@
+# -------------------------------------------------------------------------- #
+#
+# Copyright (C) 1991-2014 Altera Corporation
+# Your use of Altera Corporation's design tools, logic functions 
+# and other software and tools, and its AMPP partner logic 
+# functions, and any output files from any of the foregoing 
+# (including device programming or simulation files), and any 
+# associated documentation or information are expressly subject 
+# to the terms and conditions of the Altera Program License 
+# Subscription Agreement, Altera MegaCore Function License 
+# Agreement, or other applicable license agreement, including, 
+# without limitation, that your use is for the sole purpose of 
+# programming logic devices manufactured by Altera and sold by 
+# Altera or its authorized distributors.  Please refer to the 
+# applicable agreement for further details.
+#
+# -------------------------------------------------------------------------- #
+#
+# Quartus II 64-Bit
+# Version 13.1.4 Build 182 03/12/2014 SJ Web Edition
+# Date created = 00:07:37  March 07, 2021
+#
+# -------------------------------------------------------------------------- #
+#
+# Notes:
+#
+# 1) The default values for assignments are stored in the file:
+#		top_assignment_defaults.qdf
+#    If this file doesn't exist, see file:
+#		assignment_defaults.qdf
+#
+# 2) Altera recommends that you do not modify this file. This
+#    file is updated automatically by the Quartus II software
+#    and any changes you make may be lost or overwritten.
+#
+# -------------------------------------------------------------------------- #
+
+
+set_global_assignment -name FAMILY "Cyclone III"
+set_global_assignment -name DEVICE EP3C25E144C8
+set_global_assignment -name TOP_LEVEL_ENTITY mist
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION 13.1
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "00:07:37  MARCH 07, 2021"
+set_global_assignment -name LAST_QUARTUS_VERSION 13.1
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_global_assignment -name EDA_SIMULATION_TOOL "ModelSim-Altera (VHDL)"
+set_global_assignment -name EDA_OUTPUT_DATA_FORMAT VHDL -section_id eda_simulation
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+
+set_global_assignment -name GENERATE_RBF_FILE ON
+# -------------------------------------------------------------------------- #
+
+set_location_assignment PIN_132 -to vgab[4]
+set_location_assignment PIN_125 -to vgab[3]
+set_location_assignment PIN_121 -to vgab[2]
+set_location_assignment PIN_120 -to vgab[1]
+set_location_assignment PIN_115 -to vgab[0]
+set_location_assignment PIN_114 -to vgag[5]
+set_location_assignment PIN_113 -to vgag[4]
+set_location_assignment PIN_112 -to vgag[3]
+set_location_assignment PIN_111 -to vgag[2]
+set_location_assignment PIN_110 -to vgag[1]
+set_location_assignment PIN_106 -to vgag[0]
+set_location_assignment PIN_143 -to vgar[4]
+set_location_assignment PIN_142 -to vgar[3]
+set_location_assignment PIN_141 -to vgar[2]
+set_location_assignment PIN_137 -to vgar[1]
+set_location_assignment PIN_135 -to vgar[0]
+set_location_assignment PIN_136 -to vgav
+set_location_assignment PIN_119 -to vgah
+set_location_assignment PIN_65 -to AUDIO_L
+set_location_assignment PIN_80 -to AUDIO_R
+set_location_assignment PIN_105 -to SPI_DO
+set_location_assignment PIN_88 -to SPI_DI
+set_location_assignment PIN_126 -to SPI_SCK
+set_location_assignment PIN_127 -to SPI_SS2
+set_location_assignment PIN_91 -to SPI_SS3
+set_location_assignment PIN_13 -to CONF_DATA0
+set_location_assignment PIN_49 -to DRAM_ADDR[0]
+set_location_assignment PIN_44 -to DRAM_ADDR[1]
+set_location_assignment PIN_42 -to DRAM_ADDR[2]
+set_location_assignment PIN_39 -to DRAM_ADDR[3]
+set_location_assignment PIN_4 -to DRAM_ADDR[4]
+set_location_assignment PIN_6 -to DRAM_ADDR[5]
+set_location_assignment PIN_8 -to DRAM_ADDR[6]
+set_location_assignment PIN_10 -to DRAM_ADDR[7]
+set_location_assignment PIN_11 -to DRAM_ADDR[8]
+set_location_assignment PIN_28 -to DRAM_ADDR[9]
+set_location_assignment PIN_50 -to DRAM_ADDR[10]
+set_location_assignment PIN_30 -to DRAM_ADDR[11]
+set_location_assignment PIN_32 -to DRAM_ADDR[12]
+set_location_assignment PIN_83 -to DRAM_DQ[0]
+set_location_assignment PIN_79 -to DRAM_DQ[1]
+set_location_assignment PIN_77 -to DRAM_DQ[2]
+set_location_assignment PIN_76 -to DRAM_DQ[3]
+set_location_assignment PIN_72 -to DRAM_DQ[4]
+set_location_assignment PIN_71 -to DRAM_DQ[5]
+set_location_assignment PIN_69 -to DRAM_DQ[6]
+set_location_assignment PIN_68 -to DRAM_DQ[7]
+set_location_assignment PIN_86 -to DRAM_DQ[8]
+set_location_assignment PIN_87 -to DRAM_DQ[9]
+set_location_assignment PIN_98 -to DRAM_DQ[10]
+set_location_assignment PIN_99 -to DRAM_DQ[11]
+set_location_assignment PIN_100 -to DRAM_DQ[12]
+set_location_assignment PIN_101 -to DRAM_DQ[13]
+set_location_assignment PIN_103 -to DRAM_DQ[14]
+set_location_assignment PIN_104 -to DRAM_DQ[15]
+set_location_assignment PIN_58 -to DRAM_BA_0
+set_location_assignment PIN_51 -to DRAM_BA_1
+set_location_assignment PIN_85 -to DRAM_UDQM
+set_location_assignment PIN_67 -to DRAM_LDQM
+set_location_assignment PIN_60 -to DRAM_RAS_N
+set_location_assignment PIN_64 -to DRAM_CAS_N
+set_location_assignment PIN_66 -to DRAM_WE_N
+set_location_assignment PIN_59 -to DRAM_CS_N
+set_location_assignment PIN_33 -to DRAM_CKE
+set_location_assignment PIN_43 -to DRAM_CLK
+set_location_assignment PIN_54 -to CLK_27
+set_location_assignment PIN_31 -to irps_rxd
+set_location_assignment PIN_46 -to irps_txd
+
+
+
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
+#set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 1
+
+
+
+set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "2.5 V"
+#set_global_assignment -name ENABLE_CONFIGURATION_PINS OFF
+#set_global_assignment -name ENABLE_NCE_PIN OFF
+#set_global_assignment -name ENABLE_BOOT_SEL_PIN OFF
+set_global_assignment -name USE_CONFIGURATION_DEVICE OFF
+set_global_assignment -name CRC_ERROR_OPEN_DRAIN OFF
+set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -rise
+set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -fall
+set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -rise
+set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -fall
+set_global_assignment -name CYCLONEII_RESERVE_NCEO_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_FLASH_NCE_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_DATA1_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_DATA0_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+set_global_assignment -name VERILOG_FILE mist.v
+set_global_assignment -name VERILOG_FILE config.v
+set_global_assignment -name VERILOG_FILE ../../hdl/topboard.v
+set_global_assignment -name VERILOG_FILE "../../hdl/mc1201-02.v"
+set_global_assignment -name VERILOG_FILE "../../hdl/mc1201-01.v"
+set_global_assignment -name VERILOG_FILE ../../hdl/mc1260.v
+set_global_assignment -name VERILOG_FILE ../../hdl/mc1280.v
+set_global_assignment -name VERILOG_FILE modules/osd.v
+set_global_assignment -name VERILOG_FILE modules/user_io.v
+set_global_assignment -name VERILOG_FILE modules/sd_card.v
+set_global_assignment -name VERILOG_FILE "../../hdl/kgd-graphics.v"
+set_global_assignment -name VERILOG_FILE ../../hdl/ksm/vtreset.v
+set_global_assignment -name VERILOG_FILE ../../hdl/ksm/vtram.v
+set_global_assignment -name VERILOG_FILE ../../hdl/ksm/ksm.v
+set_global_assignment -name VERILOG_FILE ../../hdl/ksm/vregs.v
+set_global_assignment -name VERILOG_FILE ../../hdl/ksm/vga.v
+set_global_assignment -name VERILOG_FILE ../../hdl/ksm/ps2.v
+set_global_assignment -name VERILOG_FILE ../../hdl/ksm/ksm_vic.v
+set_global_assignment -name VERILOG_FILE "../../hdl/fdd-my.v"
+set_global_assignment -name VERILOG_FILE ../../hdl/rx01.v
+set_global_assignment -name VERILOG_FILE ../../hdl/dw.v
+set_global_assignment -name VERILOG_FILE ../../hdl/rk11.v
+set_global_assignment -name VERILOG_FILE ../../hdl/sdspi.v
+set_global_assignment -name VERILOG_FILE "../../hdl/irpr-centronix.v"
+set_global_assignment -name VERILOG_FILE ../../hdl/wbc_vic.v
+set_global_assignment -name VERILOG_FILE ../../hdl/wbc_uart.v
+set_global_assignment -name VERILOG_FILE ../../hdl/wbc_rst.v
+set_global_assignment -name VERILOG_FILE ../../hdl/m2/lsi_wb.v
+set_global_assignment -name VERILOG_FILE ../../hdl/m2/mcp_plm.v
+set_global_assignment -name VERILOG_FILE ../../hdl/m2/mcp1631.v
+set_global_assignment -name VERILOG_FILE ../../hdl/m2/mcp1621.v
+set_global_assignment -name VERILOG_FILE ../../hdl/m2/mcp1611.v
+set_global_assignment -name VERILOG_FILE ../../hdl/m4/am4_wb.v
+set_global_assignment -name VERILOG_FILE ../../hdl/m4/am4_seq.v
+set_global_assignment -name VERILOG_FILE ../../hdl/m4/am4_plm.v
+set_global_assignment -name VERILOG_FILE ../../hdl/m4/am4_mcrom.v
+set_global_assignment -name VERILOG_FILE ../../hdl/m4/am4_alu.v
+set_global_assignment -name VERILOG_FILE ../../hdl/vm1/vm1_wb.v
+set_global_assignment -name VERILOG_FILE ../../hdl/vm1/vm1_tve.v
+set_global_assignment -name VERILOG_FILE ../../hdl/vm1/vm1_reg.v
+set_global_assignment -name VERILOG_FILE ../../hdl/vm1/vm1_plm.v
+set_global_assignment -name VERILOG_FILE ../../hdl/vm2/vm2_wb.v
+set_global_assignment -name VERILOG_FILE ../../hdl/vm2/vm2_plm.v
+set_global_assignment -name VERILOG_FILE ../../hdl/sdram_ip/sdram_wr_data.v
+set_global_assignment -name VERILOG_FILE ../../hdl/sdram_ip/sdram_top.v
+set_global_assignment -name VERILOG_FILE ../../hdl/sdram_ip/sdram_para.v
+set_global_assignment -name VERILOG_FILE ../../hdl/sdram_ip/sdram_ctrl.v
+set_global_assignment -name VERILOG_FILE ../../hdl/sdram_ip/sdram_cmd.v
+set_global_assignment -name VERILOG_FILE "ip-components/userrom.v"
+set_global_assignment -name VERILOG_FILE "ip-components/pll.v"
+set_global_assignment -name VERILOG_FILE "ip-components/fontrom.v"
+set_global_assignment -name VERILOG_FILE "ip-components/vtmem.v"
+set_global_assignment -name VERILOG_FILE "ip-components/rom055.v"
+set_global_assignment -name VERILOG_FILE "ip-components/rom000.v"
+set_global_assignment -name QIP_FILE "ip-components/kgdvram.qip"
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
