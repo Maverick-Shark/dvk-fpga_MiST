@@ -101,9 +101,9 @@ module pll (
 		altpll_component.clk1_duty_cycle = 50,
 		altpll_component.clk1_multiply_by = `PLL_MUL,
 		altpll_component.clk1_phase_shift = "5000",
-		altpll_component.clk2_divide_by = 54,
+		altpll_component.clk2_divide_by = 27,
 		altpll_component.clk2_duty_cycle = 50,
-		altpll_component.clk2_multiply_by = 25,
+		altpll_component.clk2_multiply_by = 40,
 		altpll_component.clk2_phase_shift = "0",
 		altpll_component.clk3_divide_by = 27,
 		altpll_component.clk3_duty_cycle = 50,
@@ -184,7 +184,7 @@ endmodule
 // Retrieval info: PRIVATE: DEVICE_SPEED_GRADE STRING "Any"
 // Retrieval info: PRIVATE: DIV_FACTOR0 NUMERIC "27"
 // Retrieval info: PRIVATE: DIV_FACTOR1 NUMERIC "27"
-// Retrieval info: PRIVATE: DIV_FACTOR2 NUMERIC "54"
+// Retrieval info: PRIVATE: DIV_FACTOR2 NUMERIC "27"
 // Retrieval info: PRIVATE: DIV_FACTOR3 NUMERIC "50"
 // Retrieval info: PRIVATE: DUTY_CYCLE0 STRING "50.00000000"
 // Retrieval info: PRIVATE: DUTY_CYCLE1 STRING "50.00000000"
@@ -192,7 +192,7 @@ endmodule
 // Retrieval info: PRIVATE: DUTY_CYCLE3 STRING "50.00000000"
 // Retrieval info: PRIVATE: EFF_OUTPUT_FREQ_VALUE0 STRING "100.000000"
 // Retrieval info: PRIVATE: EFF_OUTPUT_FREQ_VALUE1 STRING "100.000000"
-// Retrieval info: PRIVATE: EFF_OUTPUT_FREQ_VALUE2 STRING "12.500000"
+// Retrieval info: PRIVATE: EFF_OUTPUT_FREQ_VALUE2 STRING "40.000000"
 // Retrieval info: PRIVATE: EFF_OUTPUT_FREQ_VALUE3 STRING "50.000000"
 // Retrieval info: PRIVATE: EXPLICIT_SWITCHOVER_COUNTER STRING "0"
 // Retrieval info: PRIVATE: EXT_FEEDBACK_RADIO STRING "0"
@@ -224,7 +224,7 @@ endmodule
 // Retrieval info: PRIVATE: MIRROR_CLK3 STRING "0"
 // Retrieval info: PRIVATE: MULT_FACTOR0 NUMERIC "100"
 // Retrieval info: PRIVATE: MULT_FACTOR1 NUMERIC "100"
-// Retrieval info: PRIVATE: MULT_FACTOR2 NUMERIC "25"
+// Retrieval info: PRIVATE: MULT_FACTOR2 NUMERIC "40"
 // Retrieval info: PRIVATE: MULT_FACTOR3 NUMERIC "27"
 // Retrieval info: PRIVATE: NORMAL_MODE_RADIO STRING "1"
 // Retrieval info: PRIVATE: OUTPUT_FREQ0 STRING "100.00000000"

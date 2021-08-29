@@ -17,6 +17,4 @@ ksm-firmware/*.lst
 *.bit
 *.timing
 *.tsm
-
-
-
+*.orig

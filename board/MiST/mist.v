@@ -51,7 +51,7 @@ module mist(
 
 );
 //--------------------------------------------
-   wire			[3:0] button = 0;        // кнопки
+//   wire			[3:0] button = 0;        // кнопки
    wire			[3:0] sw;        // переключатели конфигурации
    wire        [3:0] led;           // индикаторные светодиоды
 	
@@ -82,11 +82,11 @@ module mist(
 //********************************************
 //* Светодиоды
 //********************************************
-wire rk_led, dw_led, my_led, dx_led, timer_led;
+wire dm_led, rk_led, dw_led, my_led, dx_led, timer_led;
 
-assign led[0]=rk_led;        // запрос обмена диска RK
+assign led[0]=rk_led&dm_led; // запрос обмена диска RK и DM
 assign led[1]=dw_led;        // запрос обмена диска DW
-assign led[2]=my_led|dx_led; // запрос обмена диска MY или DX
+assign led[2]=my_led&dx_led; // запрос обмена диска MY или DX
 assign led[3]=timer_led;     // индикация включения таймера
 
 //************************************************
@@ -97,15 +97,23 @@ wire clk_n;
 wire sdclock;
 wire clkrdy;
 wire clk50;
+wire pixelclk;
 
 pll pll1 (
    .inclk0(CLK_27),
    .c0(clk_p),     // 100МГц прямая фаза, основная тактовая частота
    .c1(clk_n),     // 100МГц инверсная фаза
-   .c2(sdclock),   // 12.5 МГц тактовый сигнал SD-карты
+   .c2(pixelclk),  // 40 МГц тактовый сигнал pixelclock
+//   .c2(sdclock),   // 12.5 МГц тактовый сигнал SD-карты
    .c3(clk50),     // 50 МГц, тактовый сигнал терминальной подсистемы
    .locked(clkrdy) // флаг готовности PLL
 );
+
+reg [2:0] counter = 0;   // 12.5 МГц тактовый сигнал SD-карты
+always @(posedge clk_p)  // Делитель частоты на 4 для SD-Card
+    counter <= counter + 1;
+
+assign sdclock = counter[2]; // 12.5 МГц тактовый сигнал SD-карты
 
 //**********************************
 //* Модуль динамической памяти
@@ -228,19 +236,21 @@ topboard kernel(
    .clk_p(clk_p),                   // тактовая частота процессора, прямая фаза
    .clk_n(clk_n),                   // тактовая частота процессора, инверсная фаза
    .sdclock(sdclock),               // тактовая частота SD-карты
+   .pixelclk(pixelclk),             // тактовая частота Pixelclock
    .clkrdy(clkrdy),                 // готовность PLL
-   
-   .bt_reset(~button[0]),            // общий сброс
-   .bt_halt(~button[1]),             // режим программа-пульт
-   .bt_terminal_rst(~button[2]),     // сброс терминальной подсистемы
-   .bt_timer(~button[3]),            // выключатель таймера
+
+   .bt_reset(status[2]),            // общий сброс
+   .bt_halt(status[3]),             // режим программа-пульт
+   .bt_terminal_rst(status[5]),     // сброс терминальной подсистемы
+   .bt_timer(status[4]),            // выключатель таймера
    
    .sw_diskbank({2'b00,sw[1:0]}),   // выбор дискового банка
-   .sw_console(sw[2]),              // выбор консольного порта: 0 - терминальный модуль, 1 - ИРПС 2
-   .sw_cpuslow(sw[3]),              // режим замедления процессора
+   .sw_console(status[7]),          // выбор консольного порта: 0 - терминальный модуль, 1 - ИРПС 2
+   .sw_cpuslow(status[6]),          // режим замедления процессора
    
    // индикаторные светодиоды      
    .rk_led(rk_led),               // запрос обмена диска RK
+   .dm_led(dm_led),               // запрос обмена диска DM
    .dw_led(dw_led),               // запрос обмена диска DW
    .my_led(my_led),               // запрос обмена диска MY
    .dx_led(dx_led),               // запрос обмена диска DX
@@ -296,12 +306,20 @@ topboard kernel(
 // the configuration string is returned to the io controller to allow
 // it to control the menu on the OSD 
 parameter CONF_STR = {
-			"MC1201_02;;",
-			"S0,DSKIMG,Drive 1;",
-			"O4,Timer,On,Off;",
+			"DVK-FPGA;;",
+			"S0,DSKIMG,Drive;",
+//			"O4,Timer,On,Off;",
+			"T4,Timer;",
+			"O6,CPU slow,Off,On;",
+			"O7,Console,Termianl,UART;",
 			"T3,ODT;",
-			"T2,Reset"
+         "T5,Reset Terminal;",
+			"T2,Reset;"
 };
+
+parameter CONF_STR_LEN = 10+16+9+19+25+7+18+9;
+
+parameter PS2DIV = 14'd3332;
 
 // the status register is controlled by the on screen display (OSD)
 wire [7:0] status;
@@ -324,11 +342,7 @@ wire        img_mounted;
 wire        img_readonly;
 wire [31:0] img_size;
 
-parameter CONF_STR_LEN = 9+18+16+7+8;
-
-parameter PS2DIV = 14'd3332;
-
-user_io #(.STRLEN(CONF_STR_LEN),.PS2DIV(PS2DIV)) user_io ( 
+user_io #(.STRLEN(CONF_STR_LEN),.PS2DIV(PS2DIV)) user_io (
 
 		.conf_str   ( CONF_STR ),
 		.clk_sys		( clk50 ),
