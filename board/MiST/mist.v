@@ -313,7 +313,7 @@ parameter CONF_STR = {
 			"O6,CPU slow,Off,On;",
 			"O7,Console,Termianl,UART;",
 			"T3,ODT;",
-         "T5,Reset Terminal;",
+			"T5,Reset Terminal;",
 			"T2,Reset;"
 };
 

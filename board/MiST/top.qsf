@@ -129,7 +129,7 @@ set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
 
 
 
-set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "2.5 V"
+set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVTTL"
 #set_global_assignment -name ENABLE_CONFIGURATION_PINS OFF
 #set_global_assignment -name ENABLE_NCE_PIN OFF
 #set_global_assignment -name ENABLE_BOOT_SEL_PIN OFF
