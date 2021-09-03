@@ -22,7 +22,7 @@
 ## DATE    "Tue Mar 23 12:00:10 2021"
 
 ##
-## DEVICE  "EP4CE55F23C8"
+## DEVICE  "EP3C25E144C8"
 ##
 
 
@@ -38,8 +38,8 @@ set_time_format -unit ns -decimal_places 3
 # Create Clock
 #**************************************************************
 
-create_clock -name {clk} -period 37.037 -waveform { 0.000 10.000 } [get_ports {CLK_27}]
-
+create_clock -name {clk} -period 37.037 -waveform { 0.000 18.500 } [get_ports {CLK_27}]
+create_clock -name {SPI_SCK}  -period 41.666 -waveform { 20.8 41.666 } [get_ports {SPI_SCK}]
 
 #**************************************************************
 # Create Generated Clock

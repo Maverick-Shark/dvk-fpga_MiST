@@ -120,6 +120,7 @@ set_location_assignment PIN_43 -to DRAM_CLK
 set_location_assignment PIN_54 -to CLK_27
 set_location_assignment PIN_31 -to irps_rxd
 set_location_assignment PIN_46 -to irps_txd
+set_location_assignment PIN_7 -to LED
 
 
 

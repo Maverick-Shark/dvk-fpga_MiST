@@ -8,7 +8,7 @@
 
 module mist(
    input          CLK_27,       // clock input 27 MHz
-//   output [3:0]   led,          // индикаторные светодиоды   
+   output         LED,          // индикаторный светодиод   
    
    // Интерфейс SDRAM
    inout  [15:0]  DRAM_DQ,      //   SDRAM Data bus 16 Bits
@@ -51,13 +51,7 @@ module mist(
 
 );
 //--------------------------------------------
-//   wire			[3:0] button = 0;        // кнопки
-   wire			[3:0] sw;        // переключатели конфигурации
    wire        [3:0] led;           // индикаторные светодиоды
-	
-   assign      sw[1:0] = 2'b00;
-   assign      sw[2] = 1'b0;
-   assign      sw[3] = 1'b0;
 	
 	// интерфейс SD-карты
    wire           sdcard_cs;
@@ -97,24 +91,24 @@ wire clk_n;
 wire sdclock;
 wire clkrdy;
 wire clk50;
-wire pixelclk;
+//wire pixelclk;
 
 pll pll1 (
    .inclk0(CLK_27),
    .c0(clk_p),     // 100МГц прямая фаза, основная тактовая частота
    .c1(clk_n),     // 100МГц инверсная фаза
-   .c2(pixelclk),  // 40 МГц тактовый сигнал pixelclock
-//   .c2(sdclock),   // 12.5 МГц тактовый сигнал SD-карты
+   .c2(sdclock),   // 12.5 МГц тактовый сигнал SD-карты
    .c3(clk50),     // 50 МГц, тактовый сигнал терминальной подсистемы
+//   .c4(pixelclk),  // 40 МГц тактовый сигнал pixelclock
    .locked(clkrdy) // флаг готовности PLL
 );
 
-reg [2:0] counter = 0;   // 12.5 МГц тактовый сигнал SD-карты
-always @(posedge clk_p)  // Делитель частоты на 4 для SD-Card
+/*reg [2:0] counter = 0;   // 12.5 МГц тактовый сигнал SD-карты
+always @(posedge clk_p)  // Делитель частоты на ??? 4 для SD-Card
     counter <= counter + 1;
 
 assign sdclock = counter[2]; // 12.5 МГц тактовый сигнал SD-карты
-
+*/
 //**********************************
 //* Модуль динамической памяти
 //**********************************
@@ -236,7 +230,7 @@ topboard kernel(
    .clk_p(clk_p),                   // тактовая частота процессора, прямая фаза
    .clk_n(clk_n),                   // тактовая частота процессора, инверсная фаза
    .sdclock(sdclock),               // тактовая частота SD-карты
-   .pixelclk(pixelclk),             // тактовая частота Pixelclock
+//   .pixelclk(pixelclk),             // тактовая частота Pixelclock
    .clkrdy(clkrdy),                 // готовность PLL
 
    .bt_reset(status[2]),            // общий сброс
@@ -244,7 +238,7 @@ topboard kernel(
    .bt_terminal_rst(status[5]),     // сброс терминальной подсистемы
    .bt_timer(status[4]),            // выключатель таймера
    
-   .sw_diskbank({2'b00,sw[1:0]}),   // выбор дискового банка
+   .sw_diskbank({2'b00,status[9:8]}),   // выбор дискового банка
    .sw_console(status[7]),          // выбор консольного порта: 0 - терминальный модуль, 1 - ИРПС 2
    .sw_cpuslow(status[6]),          // режим замедления процессора
    
@@ -312,17 +306,18 @@ parameter CONF_STR = {
 			"T4,Timer;",
 			"O6,CPU slow,Off,On;",
 			"O7,Console,Termianl,UART;",
+			"O89,Disk bank,0,1,2,3;",
 			"T3,ODT;",
 			"T5,Reset Terminal;",
 			"T2,Reset;"
 };
 
-parameter CONF_STR_LEN = 10+16+9+19+25+7+18+9;
+parameter CONF_STR_LEN = 10+16+9+19+25+22+7+18+9;
 
 parameter PS2DIV = 14'd3332;
 
 // the status register is controlled by the on screen display (OSD)
-wire [7:0] status;
+wire [31:0] status;
 
 wire  [31:0] sd_lba;
 wire         sd_rd;
