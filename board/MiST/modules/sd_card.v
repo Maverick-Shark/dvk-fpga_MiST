@@ -23,11 +23,13 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 // http://elm-chan.org/docs/mmc/mmc_e.html
+//---------------------
+//   Synced bits flow.
 
 module sd_card (
     input         clk_sys,
     // link to user_io for io controller
-    output reg[31:0] sd_lba,
+    output [31:0] sd_lba,
     output reg    sd_rd,
     output reg    sd_wr,
     input         sd_ack,
@@ -61,6 +63,7 @@ wire [31:0] OCR = { 1'b1, sd_sdhc, 6'h0, 9'h1f, 15'h0 };  // bit31 = finished po
                                                           // bit30 = 1 -> high capaciry card (sdhc)
                                                           // 15-23 supported voltage range
 wire [7:0] READ_DATA_TOKEN = 8'hfe;
+wire [7:0] WRITE_DATA_RESPONSE = 8'h05;
 
 // number of bytes to wait after a command before sending the reply
 localparam NCR=4;
@@ -69,7 +72,6 @@ localparam RD_STATE_IDLE       = 2'd0;
 localparam RD_STATE_WAIT_IO    = 2'd1;
 localparam RD_STATE_SEND_TOKEN = 2'd2;
 localparam RD_STATE_SEND_DATA  = 2'd3;
-reg [1:0] read_state = RD_STATE_IDLE;
 
 localparam WR_STATE_IDLE       = 3'd0;
 localparam WR_STATE_EXP_DTOKEN = 3'd1;
@@ -78,21 +80,11 @@ localparam WR_STATE_RECV_CRC0  = 3'd3;
 localparam WR_STATE_RECV_CRC1  = 3'd4;
 localparam WR_STATE_SEND_DRESP = 3'd5;
 localparam WR_STATE_BUSY       = 3'd6;
-reg [2:0] write_state = WR_STATE_IDLE;
 
 reg card_is_reset = 1'b0;    // flag that card has received a reset command
-reg [6:0] sbuf;
-reg cmd55;
-reg terminate_cmd = 1'b0;
-reg [7:0] cmd = 8'h00;
-reg [2:0] bit_cnt = 3'd0;    // counts bits 0-7 0-7 ...
-reg [3:0] byte_cnt= 4'd15;   // counts bytes
 
 reg [39:0] args;
-
-reg [7:0] reply;
-reg [7:0] reply0, reply1, reply2, reply3;
-reg [3:0] reply_len;
+assign sd_lba = sd_sdhc?args[39:8]:{9'd0, args[39:17]};
 
 // ------------------------- SECTOR BUFFER -----------------------
 
@@ -110,14 +102,12 @@ sd_card_dpram #(8, 9) buffer_dpram
     .wren_a       (sd_buff_wr & sd_ack),
     .q_a          (sd_buff_din),
 
-    .clock_b      (clk_sys),
-    .address_b    (buffer_ptr),
-    .data_b       (buffer_din),
-    .wren_b       (buffer_write_strobe),
-    .q_b          (buffer_dout)
+        .clock_b(clk_sys),
+        .address_b(buffer_ptr),
+        .data_b(buffer_din),
+        .wren_b(buffer_write_strobe),
+        .q_b(buffer_dout)
 );
-
-wire [7:0] WRITE_DATA_RESPONSE = 8'h05;
 
 // ------------------------- CSD/CID BUFFER ----------------------
 reg  [7:0] conf;
@@ -148,10 +138,10 @@ always @(posedge clk_sys) begin
     if (~old_mounted & img_mounted) begin
         // update card size in case of a virtual SD image
         if (sd_sdhc)
-            // CSD V2.0 size = (c_size + 1) * 512K
+            // CSD V1.0 size = (c_size + 1) * 512K
             csdcid[69:48] <= {9'd0, img_size[31:19] };
         else begin
-            // CSD V1.0 no. of blocks = c_size ** (c_size_mult + 2)
+            // CSD V2.0 no. of blocks = c_size ** (c_size_mult + 2)
             csdcid[49:47] <= 3'd7; //c_size_mult
             csdcid[73:62] <= img_size[29:18]; //c_size
         end
@@ -159,25 +149,59 @@ always @(posedge clk_sys) begin
 end
 
 always@(posedge clk_sys) begin
-
+    reg [1:0] read_state;
+    reg [2:0] write_state;
+    reg [6:0] sbuf;
+    reg cmd55;
+    reg [7:0] cmd;
+    reg [2:0] bit_cnt;
+    reg [3:0] byte_cnt;
+    reg [7:0] reply;
+    reg [7:0] reply0, reply1, reply2, reply3;
+    reg [3:0] reply_len;
+    reg       tx_finish;
+    reg       rx_finish;
     reg       old_sd_sck;
+    reg       synced;
     reg [5:0] ack;
+    reg [4:0] idle_cnt = 0;
+
 
     ack <= {ack[4:0], sd_ack};
-    if(ack[5:4] == 'b01) { sd_rd, sd_wr } <= 2'b00;
     if(ack[5:4] == 'b10) sd_busy <= 0;
+    if(ack[5:4] == 'b01) { sd_rd, sd_wr } <= 2'b00;
 
     buffer_write_strobe <= 0;
     if (buffer_write_strobe) buffer_ptr <= buffer_ptr + 1'd1;
 
     old_sd_sck <= sd_sck;
 
+    if(~sd_cs)                              idle_cnt <= 31;
+    else if(~old_sd_sck && sd_sck && idle_cnt) idle_cnt <= idle_cnt - 1'd1;
+
+//    if(reset || !idle_cnt) begin
+    if(!idle_cnt) begin
+	bit_cnt     <= 0;
+	byte_cnt    <= 15;
+	synced      <= 0;
+	sd_sdo      <= 1;
+	sbuf        <= 7'b1111111;
+	tx_finish   <= 0;
+	rx_finish   <= 0;
+	read_state  <= RD_STATE_IDLE;
+	write_state <= WR_STATE_IDLE;
+    end
+
+
+
+
     // advance transmitter state machine on falling sck edge, so data is valid on the 
     // rising edge
     // ----------------- spi transmitter --------------------
-    if(sd_cs == 0 && old_sd_sck && ~sd_sck) begin
 
-        sd_sdo <= 1'b1;    // default: send 1's (busy/wait)
+    if(old_sd_sck & ~sd_sck & ~sd_cs) begin
+	tx_finish <= 0;
+	sd_sdo <= 1;       // default: send 1's (busy/wait)
 
         if(byte_cnt == 5+NCR) begin
             sd_sdo <= reply[~bit_cnt];
@@ -191,41 +215,33 @@ always@(posedge clk_sys) begin
                 if((cmd == 8'h49)||(cmd == 8'h4a))
                     read_state <= RD_STATE_SEND_TOKEN;      // jump directly to data transmission
 
-                // CMD17: READ_SINGLE_BLOCK
-                // CMD18: READ_MULTIPLE_BLOCK
-                if((cmd == 8'h51 || cmd == 8'h52) && !terminate_cmd) begin
-                    sd_lba <= sd_sdhc?args[39:8]:{9'd0, args[39:17]};
+                    // CMD17: READ_SINGLE_BLOCK
+                if(cmd == 8'h51) begin
+                    sd_busy <= 1;
                     read_state <= RD_STATE_WAIT_IO;         // start waiting for data from io controller
                     sd_rd <= 1;                      // trigger request to io controller
-                    sd_busy <= 1;
                 end
             end
         end
-        else if((reply_len > 0) && (byte_cnt == 5+NCR+1))
-            sd_sdo <= reply0[~bit_cnt];
-        else if((reply_len > 1) && (byte_cnt == 5+NCR+2))
-            sd_sdo <= reply1[~bit_cnt];
-        else if((reply_len > 2) && (byte_cnt == 5+NCR+3))
-            sd_sdo <= reply2[~bit_cnt];
-        else if((reply_len > 3) && (byte_cnt == 5+NCR+4))
-            sd_sdo <= reply3[~bit_cnt];
+        else if((reply_len > 0) && (byte_cnt == 5+NCR+1)) sd_sdo <= reply0[~bit_cnt];
+        else if((reply_len > 1) && (byte_cnt == 5+NCR+2)) sd_sdo <= reply1[~bit_cnt];
+        else if((reply_len > 2) && (byte_cnt == 5+NCR+3)) sd_sdo <= reply2[~bit_cnt];
+        else if((reply_len > 3) && (byte_cnt == 5+NCR+4)) sd_sdo <= reply3[~bit_cnt];
+	else begin
+		if(byte_cnt > 5+NCR && read_state==RD_STATE_IDLE && write_state==WR_STATE_IDLE) tx_finish <= 1;
+                   sd_sdo <= 1'b1;
+		end
 
         // ---------- read state machine processing -------------
 
         case(read_state)
-        RD_STATE_IDLE: ;
-        // don't do anything
+        RD_STATE_IDLE: ; // don't do anything
 
         // waiting for io controller to return data
         RD_STATE_WAIT_IO: begin
             buffer_ptr <= 0;
-            if(~sd_busy) begin
-                if (terminate_cmd) begin
-                    cmd <= 0;
-                    read_state <= RD_STATE_IDLE;
-                end else if (bit_cnt == 7)
-                    read_state <= RD_STATE_SEND_TOKEN;
-            end
+            if(~sd_busy && (bit_cnt == 7)) 
+                read_state <= RD_STATE_SEND_TOKEN;
         end
 
         // send data token
@@ -240,82 +256,66 @@ always@(posedge clk_sys) begin
 
         // send data
         RD_STATE_SEND_DATA: begin
-            if(cmd == 8'h51 || cmd == 8'h52)        // CMD17: READ_SINGLE_BLOCK, CMD18: READ_MULTIPLE_BLOCK
+            if(cmd == 8'h51)        // CMD17: READ_SINGLE_BLOCK
                 sd_sdo <= buffer_dout[~bit_cnt];
-            else if(cmd == 8'h49 || cmd == 8'h4a)   // CMD9: SEND_CSD, CMD10: SEND CID
+            else if(cmd == 8'h49) begin     // CMD9: SEND_CSD
                 sd_sdo <= conf_byte[~bit_cnt];
+            end
+            else if(cmd == 8'h4a)      // CMD10: SEND_CID
+                sd_sdo <= conf_byte[~bit_cnt];
+            else
+                sd_sdo <= 1'b1;
 
             if(bit_cnt == 7) begin
-
                 // sent 512 sector data bytes?
-                if((cmd == 8'h51) && &buffer_ptr)
+                if((cmd == 8'h51) && &buffer_ptr) // (buffer_ptr ==511))
                     read_state <= RD_STATE_IDLE;   // next: send crc. It's ignored so return to idle state
 
-                if((cmd == 8'h52) && &buffer_ptr) begin
-                    if (terminate_cmd) begin
-                        read_state <= RD_STATE_IDLE;
-                        cmd <= 0;
-                    end else begin
-                        sd_lba <= sd_lba + 1'd1;
-                        sd_rd <= 1;
-                        sd_busy <= 1;
-                        read_state <= RD_STATE_WAIT_IO;
-                    end
-                end
                 // sent 16 cid/csd data bytes?
-                if(((cmd == 8'h49)||(cmd == 8'h4a)) && conf_buff_ptr[3:0] == 4'h0f) // && (buffer_rptr == 16))
+                else if(((cmd == 8'h49)||(cmd == 8'h4a)) && conf_buff_ptr[3:0] == 4'h0f) // && (buffer_rptr == 16))
                     read_state <= RD_STATE_IDLE;   // return to idle state
 
-                buffer_ptr <= buffer_ptr + 1'd1;
-                conf_buff_ptr<= conf_buff_ptr+ 1'd1;
+                else begin
+                    buffer_ptr <= buffer_ptr + 1'd1;
+                    conf_buff_ptr<= conf_buff_ptr+ 1'd1;
+                end
             end
         end
-
         endcase
 
         // ------------------ write support ----------------------
         // send write data response
-        if(write_state == WR_STATE_SEND_DRESP) 
-            sd_sdo <= WRITE_DATA_RESPONSE[~bit_cnt];
+        if(write_state == WR_STATE_SEND_DRESP) sd_sdo <= WRITE_DATA_RESPONSE[~bit_cnt];
 
         // busy after write until the io controller sends ack
-        if(write_state == WR_STATE_BUSY) 
-            sd_sdo <= 1'b0;
+        if(write_state == WR_STATE_BUSY) sd_sdo <= 1'b0;
     end
 
-    // spi receiver
-    // cs is active low
-    if(sd_cs == 1) begin
-        bit_cnt <= 3'd0;
-        terminate_cmd <= 0;
-        cmd <= 0;
-        read_state <= RD_STATE_IDLE;
-    end else if (~old_sd_sck & sd_sck) begin
-        bit_cnt <= bit_cnt + 3'd1;
+    if(~old_sd_sck & sd_sck & ~sd_cs) begin
+
+	   if(synced) bit_cnt <= bit_cnt + 3'd1;
+
+		if((bit_cnt != 7) && (write_state==WR_STATE_EXP_DTOKEN) && ({ sbuf, sd_sdi} == 8'hfe )) begin
+			write_state <= WR_STATE_RECV_DATA;
+			bit_cnt <= 3'd0; // atchoum
+		end
 
         // assemble byte
-        if(bit_cnt != 7)
-            sbuf[6:0] <= { sbuf[5:0], sd_sdi };
+        if(bit_cnt != 7) sbuf[6:0] <= { sbuf[5:0], sd_sdi };
         else begin
             // finished reading one byte
             // byte counter runs against 15 byte boundary
-            if(byte_cnt != 15)
-                byte_cnt <= byte_cnt + 4'd1;
+            if(byte_cnt != 15) byte_cnt <= byte_cnt + 4'd1;
 
             // byte_cnt > 6 -> complete command received
             // first byte of valid command is 01xxxxxx
-            // don't accept new commands (except STOP TRANSMISSION) once a write or read command has been accepted
-            if((byte_cnt > 5) && 
-               (write_state == WR_STATE_IDLE) && 
-               (read_state == RD_STATE_IDLE || (read_state != RD_STATE_IDLE && { sbuf, sd_sdi} == 8'h4c)) &&
-               sbuf[6:5] == 2'b01)
-            begin
+            // don't accept new commands once a write or read command has been accepted
+            if((byte_cnt > 5) & (write_state == WR_STATE_IDLE) & (read_state == RD_STATE_IDLE)  && !rx_finish) begin
                 byte_cnt <= 4'd0;
-                terminate_cmd <= 0;
-                if ({ sbuf, sd_sdi } == 8'h4c) begin
-                    terminate_cmd <= 1;
-                end else
-                    cmd <= { sbuf, sd_sdi};
+                cmd <= { sbuf, sd_sdi};
+
+                // set cmd55 flag if previous command was 55
+                cmd55 <= (cmd == 8'h77);
             end
 
             // parse additional command bytes
@@ -331,7 +331,7 @@ always@(posedge clk_sys) begin
                 // default:
                 reply <= 8'h04;     // illegal command
                 reply_len <= 4'd0;  // no extra reply bytes
-                cmd55 <= 0;
+                rx_finish <= 1;
 
                 // CMD0: GO_IDLE_STATE
                 if(cmd == 8'h40) begin
@@ -341,10 +341,7 @@ always@(posedge clk_sys) begin
 
                 // every other command is only accepted after a reset
                 else if(card_is_reset) begin
-                    // CMD12: STOP_TRANSMISSION
-                    if (terminate_cmd)
-                        reply <= 8'h00;    // ok
-                    else case(cmd)
+                    case(cmd)
                     // CMD1: SEND_OP_COND
                     8'h41: reply <= 8'h00;    // ok, not busy
 
@@ -375,14 +372,12 @@ always@(posedge clk_sys) begin
                     // CMD17: READ_SINGLE_BLOCK
                     8'h51: reply <= 8'h00;    // ok
 
-                    // CMD18: READ_MULTIPLE_BLOCK
-                    8'h52: reply <= 8'h00;    // ok
-
                     // CMD24: WRITE_BLOCK
                     8'h58: begin
                         reply <= 8'h00;    // ok
-                        sd_lba <= sd_sdhc?args[39:8]:{9'd0, args[39:17]};
                         write_state <= WR_STATE_EXP_DTOKEN;  // expect data token
+                        rx_finish <=0;
+                        buffer_ptr <= 0;
                     end
 
                     // ACMD41: APP_SEND_OP_COND
@@ -391,10 +386,7 @@ always@(posedge clk_sys) begin
                     end
 
                     // CMD55: APP_COND
-                    8'h77: begin
-                        reply <= 8'h01;    // ok, busy
-                        cmd55 <= 1;
-                    end
+                    8'h77: reply <= 8'h01;    // ok, busy
 
                     // CMD58: READ_OCR
                     8'h7a: begin
@@ -406,6 +398,9 @@ always@(posedge clk_sys) begin
                         reply3 <= OCR[7:0];
                         reply_len <= 4'd4;
                     end
+
+                    // CMD59: CRC_ON_OFF
+                    8'h7b: reply <= 8'h00;    // ok
                     endcase
                 end
             end
@@ -450,12 +445,24 @@ always@(posedge clk_sys) begin
 
             // wait for io controller to accept data
             WR_STATE_BUSY:
-            if(~sd_busy)
+            if(~sd_busy) begin
                 write_state <= WR_STATE_IDLE;
-
+		rx_finish <= 1;
+            end
             default: ;
             endcase
         end
+        // wait for first 0 bit until start counting bits
+        if(!synced && !sd_sdi) begin
+                synced   <= 1;
+                bit_cnt  <= 1; // byte assembly prepare for next time loop
+                sbuf     <= 7'b1111110; // byte assembly prepare for next time loop
+                rx_finish<= 0;
+        end else if (synced && tx_finish && rx_finish ) begin
+                 synced   <= 0;
+                 bit_cnt  <= 0;
+                 rx_finish<= 0;
+	    end
     end
 end
 
