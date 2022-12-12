@@ -38,6 +38,7 @@ module ksm (
    output [2:0] vspeed,      // индекс скорости порта
    input  [2:0] initspeed,   // индекс начальной скорости
    input  clk50,             // 50 MHz
+   input  pixelclk,          // тактовая частота Pixelclock
    input  reset              // сброс
 ); 
  
@@ -248,7 +249,7 @@ vga video (
    .col(col),               // текущая колонка экрана
    .row(row),               // текущая строка экрана
    .flash(vtcsr[5]),        // импульсы мерцания символов
-   .clk50(clk50)
+   .pixelclk(pixelclk)      // тактовая частота Pixelclock
 );
    
 //*******************************************************

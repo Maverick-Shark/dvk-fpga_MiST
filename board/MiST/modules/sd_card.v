@@ -28,6 +28,7 @@
 
 module sd_card (
     input         clk_sys,
+    input         reset,
     // link to user_io for io controller
     output [31:0] sd_lba,
     output reg    sd_rd,
@@ -102,11 +103,11 @@ sd_card_dpram #(8, 9) buffer_dpram
     .wren_a       (sd_buff_wr & sd_ack),
     .q_a          (sd_buff_din),
 
-        .clock_b(clk_sys),
-        .address_b(buffer_ptr),
-        .data_b(buffer_din),
-        .wren_b(buffer_write_strobe),
-        .q_b(buffer_dout)
+    .clock_b      (clk_sys),
+    .address_b    (buffer_ptr),
+    .data_b       (buffer_din),
+    .wren_b       (buffer_write_strobe),
+    .q_b          (buffer_dout)
 );
 
 // ------------------------- CSD/CID BUFFER ----------------------
@@ -138,10 +139,10 @@ always @(posedge clk_sys) begin
     if (~old_mounted & img_mounted) begin
         // update card size in case of a virtual SD image
         if (sd_sdhc)
-            // CSD V1.0 size = (c_size + 1) * 512K
+            // CSD V2.0 size = (c_size + 1) * 512K
             csdcid[69:48] <= {9'd0, img_size[31:19] };
         else begin
-            // CSD V2.0 no. of blocks = c_size ** (c_size_mult + 2)
+            // CSD V1.0 no. of blocks = c_size ** (c_size_mult + 2)
             csdcid[49:47] <= 3'd7; //c_size_mult
             csdcid[73:62] <= img_size[29:18]; //c_size
         end
@@ -179,26 +180,22 @@ always@(posedge clk_sys) begin
     if(~sd_cs)                              idle_cnt <= 31;
     else if(~old_sd_sck && sd_sck && idle_cnt) idle_cnt <= idle_cnt - 1'd1;
 
-//    if(reset || !idle_cnt) begin
-    if(!idle_cnt) begin
-	bit_cnt     <= 0;
-	byte_cnt    <= 15;
-	synced      <= 0;
-	sd_sdo      <= 1;
-	sbuf        <= 7'b1111111;
-	tx_finish   <= 0;
-	rx_finish   <= 0;
-	read_state  <= RD_STATE_IDLE;
-	write_state <= WR_STATE_IDLE;
+    if(reset || !idle_cnt) begin
+//    if(!idle_cnt) begin
+           bit_cnt     <= 0;
+           byte_cnt    <= 15;
+           synced      <= 0;
+           sd_sdo      <= 1;
+           sbuf        <= 7'b1111111;
+           tx_finish   <= 0;
+           rx_finish   <= 0;
+           read_state  <= RD_STATE_IDLE;
+           write_state <= WR_STATE_IDLE;
     end
-
-
-
 
     // advance transmitter state machine on falling sck edge, so data is valid on the 
     // rising edge
     // ----------------- spi transmitter --------------------
-
     if(old_sd_sck & ~sd_sck & ~sd_cs) begin
 	tx_finish <= 0;
 	sd_sdo <= 1;       // default: send 1's (busy/wait)
@@ -223,10 +220,14 @@ always@(posedge clk_sys) begin
                 end
             end
         end
-        else if((reply_len > 0) && (byte_cnt == 5+NCR+1)) sd_sdo <= reply0[~bit_cnt];
-        else if((reply_len > 1) && (byte_cnt == 5+NCR+2)) sd_sdo <= reply1[~bit_cnt];
-        else if((reply_len > 2) && (byte_cnt == 5+NCR+3)) sd_sdo <= reply2[~bit_cnt];
-        else if((reply_len > 3) && (byte_cnt == 5+NCR+4)) sd_sdo <= reply3[~bit_cnt];
+        else if((reply_len > 0) && (byte_cnt == 5+NCR+1))
+            sd_sdo <= reply0[~bit_cnt];
+        else if((reply_len > 1) && (byte_cnt == 5+NCR+2))
+            sd_sdo <= reply1[~bit_cnt];
+        else if((reply_len > 2) && (byte_cnt == 5+NCR+3))
+            sd_sdo <= reply2[~bit_cnt];
+        else if((reply_len > 3) && (byte_cnt == 5+NCR+4))
+            sd_sdo <= reply3[~bit_cnt];
 	else begin
 		if(byte_cnt > 5+NCR && read_state==RD_STATE_IDLE && write_state==WR_STATE_IDLE) tx_finish <= 1;
                    sd_sdo <= 1'b1;

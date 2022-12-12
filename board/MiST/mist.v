@@ -7,41 +7,39 @@
 `include "config.v"
 
 module mist(
-   input          CLK_27,       // clock input 27 MHz
+   input          CLOCK_27,     // clock input 27 MHz
    output         LED,          // индикаторный светодиод   
    
    // Интерфейс SDRAM
-   inout  [15:0]  DRAM_DQ,      //   SDRAM Data bus 16 Bits
-   output [12:0]  DRAM_ADDR,    //   SDRAM Address bus 12 Bits
-   output         DRAM_LDQM,    //   SDRAM Low-byte Data Mask 
-   output         DRAM_UDQM,    //   SDRAM High-byte Data Mask
-   output         DRAM_WE_N,    //   SDRAM Write Enable
-   output         DRAM_CAS_N,   //   SDRAM Column Address Strobe
-   output         DRAM_RAS_N,   //   SDRAM Row Address Strobe
-   output         DRAM_CS_N,    //   SDRAM Chip Select
-   output         DRAM_BA_0,    //   SDRAM Bank Address 0
-   output         DRAM_BA_1,    //   SDRAM Bank Address 0
-   output         DRAM_CLK,     //   SDRAM Clock
-   output         DRAM_CKE,     //   SDRAM Clock Enable
+   output [12:0]  SDRAM_A,      //   SDRAM Address bus 12 Bits
+   inout  [15:0]  SDRAM_DQ,     //   SDRAM Data bus 16 Bits
+   output         SDRAM_DQML,   //   SDRAM Low-byte Data Mask 
+   output         SDRAM_DQMH,   //   SDRAM High-byte Data Mask
+   output         SDRAM_nWE,    //   SDRAM Write Enable
+   output         SDRAM_nCAS,   //   SDRAM Column Address Strobe
+   output         SDRAM_nRAS,   //   SDRAM Row Address Strobe
+   output         SDRAM_nCS,    //   SDRAM Chip Select
+   output [1:0]   SDRAM_BA,     //   SDRAM Bank Address 0,1
+   output         SDRAM_CLK,    //   SDRAM Clock
+   output         SDRAM_CKE,    //   SDRAM Clock Enable
    
    // VGA
-   output         vgah,         // горизонтальная синхронизация
-   output         vgav,         // вертикакльная синхронизация
-   output         [4:0]vgar,    // красный видеосигнал
-   output         [5:0]vgag,    // зеленый видеосигнал
-   output         [4:0]vgab,    // синий видеосигнал
+   output         VGA_HS,       // горизонтальная синхронизация
+   output         VGA_VS,       // вертикакльная синхронизация
+   output [5:0]   VGA_R,        // красный видеосигнал
+   output [5:0]   VGA_G,        // зеленый видеосигнал
+   output [5:0]   VGA_B,        // синий видеосигнал
 
    // пищалка    
-   output         buzzer,
-//   output         AUDIO_L,
-//   output         AUDIO_R,
+   output         AUDIO_L,
+   output         AUDIO_R,
     
    // дополнительный UART 
-   output         irps_txd,
-   input          irps_rxd,
+   output         UART_TX,
+   input          UART_RX,
    
-// SPI interface to arm io controller
-   output			SPI_DO,
+   // SPI interface to arm io controller
+   output         SPI_DO,
    input          SPI_DI,
    input          SPI_SCK,
    input          SPI_SS2,
@@ -51,37 +49,30 @@ module mist(
 
 );
 //--------------------------------------------
-   wire        [3:0] led;           // индикаторные светодиоды
-	
-	// интерфейс SD-карты
+   // интерфейс SD-карты
    wire           sdcard_cs;
    wire           sdcard_mosi;
    wire           sdcard_sclk;
-   wire			   sdcard_miso;
-
-	// LPT - принтер
-	wire [7:0]     lp_data;    // данные для передачи к принтеру
-	wire           lp_stb_n;   // строб записи в принтер
-	wire           lp_init_n;  // строб сброса
-	wire           lp_busy;    // сигнал занятости принтера
-	wire           lp_err_n;   // сигнал ошибки
+   wire           sdcard_miso;
 
    // PS/2
-   wire			  ps2_clk;
-   wire			  ps2_data;
+   wire           ps2_clk;
+   wire           ps2_data;
 
-	// VGA RGB
+   // VGA RGB
    wire [5:0] video_r, video_g, video_b;
+
+   // пищалка
+   wire nbuzzer;
+   wire buzzer=~nbuzzer;
+
+   assign AUDIO_L   = {15{buzzer}};
+   assign AUDIO_R   = {15{buzzer}};
 
 //********************************************
 //* Светодиоды
 //********************************************
 wire dm_led, rk_led, dw_led, my_led, dx_led, timer_led;
-
-assign led[0]=rk_led&dm_led; // запрос обмена диска RK и DM
-assign led[1]=dw_led;        // запрос обмена диска DW
-assign led[2]=my_led&dx_led; // запрос обмена диска MY или DX
-assign led[3]=timer_led;     // индикация включения таймера
 
 //************************************************
 //* тактовый генератор 
@@ -91,24 +82,24 @@ wire clk_n;
 wire sdclock;
 wire clkrdy;
 wire clk50;
-//wire pixelclk;
+wire pixelclk;
 
 pll pll1 (
-   .inclk0(CLK_27),
+   .inclk0(CLOCK_27),
    .c0(clk_p),     // 100МГц прямая фаза, основная тактовая частота
    .c1(clk_n),     // 100МГц инверсная фаза
-   .c2(sdclock),   // 12.5 МГц тактовый сигнал SD-карты
+//   .c2(sdclock),   // 12.5 МГц тактовый сигнал SD-карты
    .c3(clk50),     // 50 МГц, тактовый сигнал терминальной подсистемы
-//   .c4(pixelclk),  // 40 МГц тактовый сигнал pixelclock
+   .c4(pixelclk),  // 40 МГц тактовый сигнал pixelclock
    .locked(clkrdy) // флаг готовности PLL
 );
 
-/*reg [2:0] counter = 0;   // 12.5 МГц тактовый сигнал SD-карты
-always @(posedge clk_p)  // Делитель частоты на ??? 4 для SD-Card
+reg [2:0] counter = 0;   // 12.5 МГц тактовый сигнал SD-карты
+always @(posedge clk_p)  // Делитель частоты на 8 для SD-Card
     counter <= counter + 1;
 
 assign sdclock = counter[2]; // 12.5 МГц тактовый сигнал SD-карты
-*/
+
 //**********************************
 //* Модуль динамической памяти
 //**********************************
@@ -149,7 +140,7 @@ end
 // стробы подтверждения
 wire sdr_wr_ack,sdr_rd_ack;
 // тактовый сигнал на память - инверсия синхросигнала шины
-assign DRAM_CLK=clk_n;
+assign SDRAM_CLK=clk_n;
 
 // стробы чтения и записи в sdram
 assign sdram_wr=sdram_we & sdram_stb;
@@ -171,8 +162,8 @@ always @ (posedge sdram_stb) begin
   end
 end  
 
-assign DRAM_UDQM=dram_h; 
-assign DRAM_LDQM=dram_l; 
+assign SDRAM_DQMH=dram_h; 
+assign SDRAM_DQML=dram_l; 
 
 // контроллер SDRAM
 
@@ -190,14 +181,14 @@ sdram_top sdram(
     .sys_data_out(sdram_dat),
     .sdwr_byte(1),
     .sdrd_byte(4),
-    .sdram_cke(DRAM_CKE),
-    .sdram_cs_n(DRAM_CS_N),
-    .sdram_ras_n(DRAM_RAS_N),
-    .sdram_cas_n(DRAM_CAS_N),
-    .sdram_we_n(DRAM_WE_N),
-    .sdram_ba({DRAM_BA_1,DRAM_BA_0}),
-    .sdram_addr(DRAM_ADDR[12:0]),
-    .sdram_data(DRAM_DQ),
+    .sdram_cke(SDRAM_CKE),
+    .sdram_cs_n(SDRAM_nCS),
+    .sdram_ras_n(SDRAM_nRAS),
+    .sdram_cas_n(SDRAM_nCAS),
+    .sdram_we_n(SDRAM_nWE),
+    .sdram_ba(SDRAM_BA),
+    .sdram_addr(SDRAM_A[12:0]),
+    .sdram_data(SDRAM_DQ),
     .sdram_init_done(sdram_ready)     // выход готовности SDRAM
 );
          
@@ -218,8 +209,8 @@ end
 wire vgagreen,vgared,vgablue;
 // выбор яркости каждого цвета  - сигнал, подаваемый на видео-ЦАП для светящейся и темной точки.   
 assign video_g = (vgagreen == 1'b1) ? 6'b111111 : 6'b000000 ;
-assign video_b = (vgablue == 1'b1)  ? 5'b11111  : 5'b00000 ;
-assign video_r = (vgared == 1'b1)   ? 5'b11110  : 5'b00000 ;
+assign video_b = (vgablue == 1'b1)  ? 6'b111111 : 6'b000000 ;
+assign video_r = (vgared == 1'b1)   ? 6'b111110 : 6'b000000 ;
 
 //************************************
 //* Соединительная плата
@@ -230,7 +221,7 @@ topboard kernel(
    .clk_p(clk_p),                   // тактовая частота процессора, прямая фаза
    .clk_n(clk_n),                   // тактовая частота процессора, инверсная фаза
    .sdclock(sdclock),               // тактовая частота SD-карты
-//   .pixelclk(pixelclk),             // тактовая частота Pixelclock
+   .pixelclk(pixelclk),             // тактовая частота Pixelclock
    .clkrdy(clkrdy),                 // готовность PLL
 
    .bt_reset(status[2]),            // общий сброс
@@ -268,8 +259,8 @@ topboard kernel(
    .sdcard_miso(sdcard_miso), 
 
    // VGA
-   .vgah(vgah),         // горизонтальная синхронизация
-   .vgav(vgav),         // вертикакльная синхронизация
+   .vgah(VGA_HS),         // горизонтальная синхронизация
+   .vgav(VGA_VS),         // вертикакльная синхронизация
    .vgared(vgared),     // красный видеосигнал
    .vgagreen(vgagreen), // зеленый видеосигнал
    .vgablue(vgablue),   // синий видеосигнал
@@ -279,18 +270,11 @@ topboard kernel(
    .ps2_data(ps2_data),
    
    // пищалка    
-   .buzzer(buzzer), 
+   .buzzer(nbuzzer), 
     
    // дополнительный UART 
-   .irps_txd(irps_txd),
-   .irps_rxd(irps_rxd),
-   
-   // LPT
-   .lp_data(lp_data),    // данные для передачи к принтеру
-   .lp_stb_n(lp_stb_n),  // строб записи в принтер
-   .lp_init_n(lp_init_n),// строб сброса
-   .lp_busy(lp_busy),    // сигнал занятости принтера
-   .lp_err_n(lp_err_n)   // сигнал ошибки
+   .irps_txd(UART_TX),
+   .irps_rxd(UART_RX)
 );
 
 //**********************************
@@ -302,29 +286,25 @@ topboard kernel(
 parameter CONF_STR = {
 			"DVK-FPGA;;",
 			"S0,DSKIMG,Drive;",
-//			"O4,Timer,On,Off;",
-			"T4,Timer;",
+			"O4,Timer,On,Off;",
 			"O6,CPU slow,Off,On;",
 			"O7,Console,Termianl,UART;",
 			"O89,Disk bank,0,1,2,3;",
-			"T3,ODT;",
+			"O3,ODT,On,Off;",
 			"T5,Reset Terminal;",
 			"T2,Reset;"
 };
 
-parameter CONF_STR_LEN = 10+16+9+19+25+22+7+18+9;
+parameter CONF_STR_LEN = 10+16+16+19+25+22+14+18+9;
 
 parameter PS2DIV = 14'd3332;
 
 // the status register is controlled by the on screen display (OSD)
 wire [31:0] status;
 
-wire  [31:0] sd_lba;
-wire         sd_rd;
-wire         sd_wr;
-//reg  [31:0] sd_lba;
-//reg         sd_rd = 0;
-//reg         sd_wr = 0;
+wire [31:0] sd_lba;
+wire        sd_rd;
+wire        sd_wr;
 wire        sd_conf;
 wire        sd_ack;
 wire        sd_ack_conf;
@@ -337,40 +317,36 @@ wire        img_mounted;
 wire        img_readonly;
 wire [31:0] img_size;
 
+reg sd_act;
+always @(posedge clk_p) begin
+	reg old_mosi, old_miso;
+	integer timeout = 0;
+
+	old_mosi <= sdcard_mosi;
+	old_miso <= sdcard_miso;
+
+	sd_act <= 0;
+	if(timeout < 1000000) begin
+		timeout <= timeout + 1;
+		sd_act <= 1;
+	end
+
+	if((old_mosi ^ sdcard_mosi) || (old_miso ^ sdcard_miso)) timeout <= 0;
+end
+assign 	   LED = sd_act;
+
 user_io #(.STRLEN(CONF_STR_LEN),.PS2DIV(PS2DIV)) user_io (
 
-		.conf_str   ( CONF_STR ),
-		.clk_sys		( clk50 ),
-		.clk_sd		( clk50 ),
-		.SPI_CLK    ( SPI_SCK    ),
-      .SPI_SS_IO  ( CONF_DATA0 ),
-      .SPI_MISO   ( SPI_DO     ),
-      .SPI_MOSI   ( SPI_DI     ),
+        .conf_str(CONF_STR),
+        .clk_sys(clk_p),
+        .clk_sd(clk_p),
+        .SPI_CLK(SPI_SCK),
+        .SPI_SS_IO(CONF_DATA0),
+        .SPI_MISO(SPI_DO),
+        .SPI_MOSI(SPI_DI),
 
-		.status     ( status     ),
+        .status(status),
 
-		.sd_conf(sd_conf),
-		.sd_ack(sd_ack),
-		.sd_ack_conf(sd_ack_conf),
-		.sd_sdhc(sd_sdhc),
-		.sd_rd(sd_rd),
-		.sd_wr(sd_wr),
-		.sd_lba(sd_lba),
-		.sd_buff_addr(sd_buff_addr),
-		.sd_din(sd_buff_din),
-		.sd_dout(sd_buff_dout),
-		.sd_dout_strobe(sd_buff_wr),
-		
-		// ps2 interface
-		.ps2_kbd_clk    ( ps2_clk    ),
-		.ps2_kbd_data   ( ps2_data   )
-);
-
-sd_card sd_card
-(
-        .clk_sys( clk50 ),
-        .img_mounted(img_mounted),
-        .img_size(img_size),
         .sd_conf(sd_conf),
         .sd_ack(sd_ack),
         .sd_ack_conf(sd_ack_conf),
@@ -379,34 +355,60 @@ sd_card sd_card
         .sd_wr(sd_wr),
         .sd_lba(sd_lba),
         .sd_buff_addr(sd_buff_addr),
-        .sd_buff_din(sd_buff_din),
+        .sd_din(sd_buff_din),
+        .sd_dout(sd_buff_dout),
+        .sd_dout_strobe(sd_buff_wr),
+
+        // ps2 interface
+        .ps2_kbd_clk(ps2_clk),
+        .ps2_kbd_data(ps2_data)
+);
+
+sd_card sd_card
+(
+        .clk_sys(clk_p),
+        .reset(status[2]),
+        .sd_lba(sd_lba),
+        .sd_rd(sd_rd),
+        .sd_wr(sd_wr),
+        .sd_ack(sd_ack),
+        .sd_ack_conf(sd_ack_conf),
+        .sd_conf(sd_conf),
+        .sd_sdhc(sd_sdhc),
+
+        .img_mounted(img_mounted),
+        .img_size(img_size),
+
         .sd_buff_dout(sd_buff_dout),
         .sd_buff_wr(sd_buff_wr),
+        .sd_buff_din(sd_buff_din),
+        .sd_buff_addr(sd_buff_addr),
         .allow_sdhc(1),
-        .sd_sck(sdcard_sclk),
+
         .sd_cs(sdcard_cs),
+        .sd_sck(sdcard_sclk),
         .sd_sdi(sdcard_mosi),
         .sd_sdo(sdcard_miso)
 );
 
 osd  osd ( 	
 
-		.clk_sys		( clk50 ),
-		.ce			(0),
-		.rotate		(0),
-      .SPI_SCK    ( SPI_SCK  ),
-      .SPI_SS3    ( SPI_SS3  ),
-      .SPI_DI		( SPI_DI   ),
+        .clk_sys( clk50 ),
+        .ce(0),
+        .rotate(0),
+        .SPI_SCK(SPI_SCK),
+        .SPI_SS3(SPI_SS3),
+        .SPI_DI(SPI_DI),
 
-		.R_in			( video_r  ),
-		.G_in			( video_g  ),
-		.B_in			( video_b  ),
-		.HSync		(vgah),
-		.VSync		(vgav),
+        .R_in(video_r),
+        .G_in(video_g),
+        .B_in(video_b),
+        .HSync(VGA_HS),
+        .VSync(VGA_VS),
 
-		.R_out		(vgar),
-		.G_out		(vgag),
-		.B_out		(vgab)
+        .R_out(VGA_R),
+        .G_out(VGA_G),
+        .B_out(VGA_B)
 );
 
 endmodule

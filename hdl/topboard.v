@@ -18,6 +18,7 @@ module topboard (
    input          clk_p,        // основной синхросигнал, прямая фаза
    input          clk_n,        // основной синхросигнал, инверсная фаза
    input          sdclock,      // синхросигнал Sd-карты
+   input          pixelclk,     // тактовая частота Pixelclock
    input          clkrdy,       // готовность PLL
    
    // кнопки
@@ -490,6 +491,7 @@ ksm terminal(
    .row(row),
    
    .clk50(clk50), 
+   .pixelclk(pixelclk),             // тактовая частота Pixelclock
    .reset(bt_terminal_rst | ~clkrdy)         // сброс видеоподсистемы
 );
 `else

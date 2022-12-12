@@ -29,7 +29,7 @@ module vga (
    output reg [10:0]      col,        // колонка X, 0-1055
    output reg [9:0]       row,        // строка Y, 0-627
    
-   input clk50                        // тактовый сигнал 50 Мгц
+   input                  pixelclk   // тактовая частота Pixelclock
 );
 
    
@@ -45,7 +45,7 @@ reg[7:0] vram_odd[1023:0];          // нечетные байты
 //************************************
 fontrom fontrom0 (
       .address(font_adr), 
-      .clock(clk50), 
+      .clock(pixelclk), 
       .q(pixel)
 ); 
 
@@ -108,7 +108,7 @@ reg vram_a0;
 //**********************************  
 //* Процесс попиксельной обработки
 //**********************************  
-always @(posedge clk50) 
+always @(posedge pixelclk) 
   if (reset == 1'b1) begin
     // сброс контроллера
     col <= 11'o0;
@@ -122,11 +122,14 @@ always @(posedge clk50)
   //**********************************  
 
   // конец полной видеостроки 
-  if (col == 11'd1055) begin
+if (col == 11'd1055) begin
+//if (col == 11'd1199) begin
     // переход на новую строку
     col <= 11'd0;
     // конец полного кадра
-    if (row == 10'd627) begin
+//    if (row == 10'd683) begin   // 40.909091 hz
+    if (row == 10'd627) begin   // 40Mhz
+//  if (row == 10'd694) begin   // 50Mhz
       // переход на новый кадр
       row <= 10'd0;
       row_start_adr <= 11'o0; 
