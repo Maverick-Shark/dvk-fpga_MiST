@@ -9,7 +9,18 @@
 module mist(
    input          CLOCK_27,     // clock input 27 MHz
    output         LED,          // индикаторный светодиод   
-   
+
+   // VGA
+   output [5:0]   VGA_R,        // красный видеосигнал
+   output [5:0]   VGA_G,        // зеленый видеосигнал
+   output [5:0]   VGA_B,        // синий видеосигнал
+   output         VGA_HS,       // горизонтальная синхронизация
+   output         VGA_VS,       // вертикакльная синхронизация
+
+   // AUDIO
+   output         AUDIO_L,
+   output         AUDIO_R,
+
    // Интерфейс SDRAM
    output [12:0]  SDRAM_A,      //   SDRAM Address bus 12 Bits
    inout  [15:0]  SDRAM_DQ,     //   SDRAM Data bus 16 Bits
@@ -22,18 +33,7 @@ module mist(
    output [1:0]   SDRAM_BA,     //   SDRAM Bank Address 0,1
    output         SDRAM_CLK,    //   SDRAM Clock
    output         SDRAM_CKE,    //   SDRAM Clock Enable
-   
-   // VGA
-   output         VGA_HS,       // горизонтальная синхронизация
-   output         VGA_VS,       // вертикакльная синхронизация
-   output [5:0]   VGA_R,        // красный видеосигнал
-   output [5:0]   VGA_G,        // зеленый видеосигнал
-   output [5:0]   VGA_B,        // синий видеосигнал
 
-   // пищалка    
-   output         AUDIO_L,
-   output         AUDIO_R,
-    
    // дополнительный UART 
    output         UART_TX,
    input          UART_RX,
@@ -66,8 +66,8 @@ module mist(
    wire nbuzzer;
    wire buzzer=~nbuzzer;
 
-   assign AUDIO_L   = {15{buzzer}};
-   assign AUDIO_R   = {15{buzzer}};
+   assign AUDIO_L   = {buzzer};
+   assign AUDIO_R   = {buzzer};
 
 //********************************************
 //* Светодиоды
@@ -96,30 +96,25 @@ pll pll1 (
 
 reg [2:0] counter = 0;   // 12.5 МГц тактовый сигнал SD-карты
 always @(posedge clk_p)  // Делитель частоты на 8 для SD-Card
-    counter <= counter + 1;
+    counter <= counter + 1'b1;
 
 assign sdclock = counter[2]; // 12.5 МГц тактовый сигнал SD-карты
 
 //**********************************
 //* Модуль динамической памяти
 //**********************************
+wire       sdram_reset;
+reg        sdram_ready;
 
-wire sdram_reset;
-wire sdram_we;
-wire sdram_stb;
-wire [1:0] sdram_sel;
-wire sdram_ack;
-wire [21:1] sdram_adr;
-wire [15:0] sdram_out;
-wire [15:0] sdram_dat;
-wire sdram_ready;
-wire sdram_wr;
-wire sdram_rd;
+reg  [1:0] dreset;
+reg  [1:0] dr_cnt;
+reg        drs;
 
-reg [1:0] dreset;
-reg [1:0] dr_cnt;
-reg drs;
-
+always @(posedge clk_p)
+   begin
+      if (sdram_reset) sdram_ready <= 1'b0;
+      else sdram_ready <= sdram_ready | sdr_ack;
+   end
 // формирователь сброса
 always @(posedge clk_p)
 begin
@@ -136,71 +131,60 @@ begin
      else drs<=1'b1;                          // задержка окончена - снимаем сигнал сброса DRAM
 end
 
+//------- SDRAM -------------------------------------
+// стробы чтения и записи в sdram
+wire        sdram_we;
+wire        sdram_stb;
+wire  [1:0] sdram_sel;
+wire        sdram_ack;
+wire [21:1] sdram_adr;
+wire [15:0] sdram_out;
+wire [15:0] sdram_dat;
+wire        sdram_wr = sdram_we & sdram_stb;
+wire        sdram_rd = (~sdram_we) & sdram_stb;
 
 // стробы подтверждения
-wire sdr_wr_ack,sdr_rd_ack;
+wire sdr_ack;
 // тактовый сигнал на память - инверсия синхросигнала шины
 assign SDRAM_CLK=clk_n;
 
-// стробы чтения и записи в sdram
-assign sdram_wr=sdram_we & sdram_stb;
-assign sdram_rd=(~sdram_we) & sdram_stb;
+sdram sdram(
+   .clk        (clk_p),
+   .init       (~drs),          // запускаем модуль, как только pll выйдет в рабочий режим, запуска процессора не ждем
+   .we         (sdram_wr),      // cpu requests write
+   .rd         (sdram_rd),      // cpu requests read
+   .ready      (sdr_ack),       // dout is valid. Ready to accept new read/write.
+   .wtbt       (sdram_sel),     // 16bit mode:  bit1 - write high byte, bit0 - write low byte,
+                                // 8bit mode:  2'b00 - use addr[0] to decide which byte to write
+                                // Ignored while reading.
+   .addr       ({3'b000, sdram_adr[21:1], 1'b0}),  // 25 bit address for 8bit mode. addr[0] = 0 for 16bit mode for correct operations.
+   .din        (sdram_out),     // data input from cpu
+   .dout       (sdram_dat),     // data output to cpu
 
-// Сигналы выбора старших-младших байтов
-reg dram_h,dram_l;
+   .SDRAM_CKE  (SDRAM_CKE),     // clock enable
+   .SDRAM_nCS  (SDRAM_nCS),     // a single chip select
+   .SDRAM_nRAS (SDRAM_nRAS),    // row address select
+   .SDRAM_nCAS (SDRAM_nCAS),    // columns address select
+   .SDRAM_nWE  (SDRAM_nWE),     // write enable
+   .SDRAM_BA   (SDRAM_BA),      // two banks
+   .SDRAM_A    (SDRAM_A[12:0]), // 13 bit multiplexed address bus
+   .SDRAM_DQ   (SDRAM_DQ),      // 16 bit bidirectional data bus
+   .SDRAM_DQML (SDRAM_DQML),    // two byte masks
+   .SDRAM_DQMH (SDRAM_DQMH)
+   );
 
-always @ (posedge sdram_stb) begin
-  if (sdram_we == 1'b0) begin
-   // чтение - всегда словное
-   dram_h<=1'b0;
-   dram_l<=1'b0;
-  end
-  else begin
-   // определение записываемых байтов
-   dram_h<=~sdram_sel[1];  // старший
-   dram_l<=~sdram_sel[0];  // младший
-  end
-end  
-
-assign SDRAM_DQMH=dram_h; 
-assign SDRAM_DQML=dram_l; 
-
-// контроллер SDRAM
-
-sdram_top sdram(
-    .clk(clk_p),
-    .rst_n(drs), // запускаем модуль, как только pll выйдет в рабочий режим, запуска процессора не ждем
-    .sdram_wr_req(sdram_wr),
-    .sdram_rd_req(sdram_rd),
-    .sdram_wr_ack(sdr_wr_ack),
-    .sdram_rd_ack(sdr_rd_ack),
-    .sdram_byteenable(sdram_sel),
-    .sys_wraddr({1'b0,sdram_adr[21:1]}),
-    .sys_rdaddr({1'b0,sdram_adr[21:1]}),
-    .sys_data_in(sdram_out),
-    .sys_data_out(sdram_dat),
-    .sdwr_byte(1),
-    .sdrd_byte(4),
-    .sdram_cke(SDRAM_CKE),
-    .sdram_cs_n(SDRAM_nCS),
-    .sdram_ras_n(SDRAM_nRAS),
-    .sdram_cas_n(SDRAM_nCAS),
-    .sdram_we_n(SDRAM_nWE),
-    .sdram_ba(SDRAM_BA),
-    .sdram_addr(SDRAM_A[12:0]),
-    .sdram_data(SDRAM_DQ),
-    .sdram_init_done(sdram_ready)     // выход готовности SDRAM
-);
-         
 // формирователь сигнала подверждения транзакции
-reg [1:0]dack;
+//reg  [1:0] dack;
+reg        dack;
 
-assign sdram_ack = sdram_stb & (dack[1]);
+//assign sdram_ack = sdram_stb & (dack[1]);
+assign sdram_ack = sdram_stb & dack & sdr_ack ;
 
 // задержка сигнала подтверждения на 1 такт clk
 always @ (posedge clk_p)  begin
-   dack[0] <= sdram_stb & (sdr_rd_ack | sdr_wr_ack);
-   dack[1] <= sdram_stb & dack[0];
+//   dack[0] <= sdram_stb & sdr_ack;
+//   dack[1] <= sdram_stb & dack[0];
+   dack <= sdram_stb;
 end
 
 //************************************
