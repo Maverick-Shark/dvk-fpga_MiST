@@ -2,7 +2,7 @@
 <Project>
     <Project_Created_Time>2021-03-10 07:42:39</Project_Created_Time>
     <TD_Version>4.6.18154</TD_Version>
-    <UCode>11011101</UCode>
+    <UCode>10110010</UCode>
     <Name>top</Name>
     <HardWare>
         <Family>EG4</Family>
@@ -12,6 +12,7 @@
         <Verilog>
             <File>tang.v</File>
             <File>config.v</File>
+            <File>../../hdl/topboard.v</File>
             <File>../../hdl/dw.v</File>
             <File>../../hdl/fdd-my.v</File>
             <File>../../hdl/irpr-centronix.v</File>
@@ -65,19 +66,10 @@
             <File>ip-components/tang_sectorbuf.v</File>
             <File>ip-components/tang_bootrom.v</File>
             <File>../../hdl/rk611.v</File>
-            <File>../../hdl/topboard16.v</File>
-            <File>../../hdl/topboard22.v</File>
-            <File>../../hdl/pdp2011.v</File>
-            <File>../../hdl/pdp2011/cpu_control_regs.v</File>
-            <File>../../hdl/pdp2011/cpuregs.v</File>
-            <File>../../hdl/pdp2011/fpuregs.v</File>
-            <File>../../hdl/pdp2011/mmu.v</File>
-            <File>../../hdl/pdp2011/wb_cpu2011.v</File>
-            <File>../../hdl/rh70.v</File>
         </Verilog>
         <ADC_FILE>top.adc</ADC_FILE>
         <SDC_FILE>top.sdc</SDC_FILE>
-        <CWC_FILE>top.cwc</CWC_FILE>
+        <CWC_FILE/>
     </Source_Files>
     <TOP_MODULE>
         <LABEL/>
@@ -89,8 +81,8 @@
         <RtlProperty/>
     </Property>
     <Project_Settings>
-        <Step_Last_Change>2021-09-18 08:04:31</Step_Last_Change>
-        <Current_Step>30</Current_Step>
+        <Step_Last_Change>2021-07-12 07:01:40</Step_Last_Change>
+        <Current_Step>0</Current_Step>
         <Step_Status>true</Step_Status>
     </Project_Settings>
 </Project>
