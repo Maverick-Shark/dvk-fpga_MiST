@@ -132,7 +132,7 @@ wire clk_n;
 wire sdclock;
 wire clkrdy;
 wire clk50;
-wire pixelclk;
+//wire pixelclk;
 
 pll pll1 (
 `ifdef USE_CLOCK_50
@@ -142,9 +142,9 @@ pll pll1 (
 `endif
    .c0(clk_p),     // 100МГц прямая фаза, основная тактовая частота
    .c1(clk_n),     // 100МГц инверсная фаза
-//   .c2(sdclock),   // 12.5 МГц тактовый сигнал SD-карты
+   .c2(sdclock),   // 12.5 МГц тактовый сигнал SD-карты
    .c3(clk50),     // 50 МГц, тактовый сигнал терминальной подсистемы
-   .c4(pixelclk),  // 40 МГц тактовый сигнал pixelclock
+// .c4(pixelclk),  // 40 МГц тактовый сигнал pixelclock
    .locked(clkrdy) // флаг готовности PLL
 );
 
@@ -152,7 +152,7 @@ reg [2:0] counter = 0;   // 12.5 МГц тактовый сигнал SD-кар�
 always @(posedge clk_p)  // Делитель частоты на 8 для SD-Card
     counter <= counter + 1'b1;
 
-assign sdclock = counter[2]; // 12.5 МГц тактовый сигнал SD-карты
+//assign sdclock = counter[2]; // 12.5 МГц тактовый сигнал SD-карты
 
 //**********************************
 //* Модуль динамической памяти
@@ -250,16 +250,19 @@ assign video_g = (vgagreen == 1'b1) ? 6'b111111 : 6'b000000 ;
 assign video_b = (vgablue == 1'b1)  ? 6'b111111 : 6'b000000 ;
 assign video_r = (vgared == 1'b1)   ? 6'b111110 : 6'b000000 ;
 
+`include "config.v"
+`include "../../hdl/common-config.v"
+
 //************************************
 //* Соединительная плата
 //************************************
-topboard kernel(
+`TOPBOARD kernel(
 
    .clk50(clk50),                   // 50 МГц
    .clk_p(clk_p),                   // тактовая частота процессора, прямая фаза
    .clk_n(clk_n),                   // тактовая частота процессора, инверсная фаза
    .sdclock(sdclock),               // тактовая частота SD-карты
-   .pixelclk(pixelclk),             // тактовая частота Pixelclock
+// .pixelclk(pixelclk),             // тактовая частота Pixelclock
    .clkrdy(clkrdy),                 // готовность PLL
 
    .bt_reset(status[2]),            // общий сброс
@@ -297,8 +300,8 @@ topboard kernel(
    .sdcard_miso(sdcard_miso), 
 
    // VGA
-   .vgah(VGA_HS),         // горизонтальная синхронизация
-   .vgav(VGA_VS),         // вертикакльная синхронизация
+   .vgah(VGA_HS),       // горизонтальная синхронизация
+   .vgav(VGA_VS),       // вертикакльная синхронизация
    .vgared(vgared),     // красный видеосигнал
    .vgagreen(vgagreen), // зеленый видеосигнал
    .vgablue(vgablue),   // синий видеосигнал
@@ -391,7 +394,8 @@ user_io #(.STRLEN($size(CONF_STR)>>3), .FEATURES(32'h0 | (BIG_OSD << 13))) user_
 
         .conf_str(CONF_STR),
         .clk_sys(clk_p),
-        .clk_sd(clk_p),
+//      .clk_sd(clk_p),
+        .clk_sd(sdclock),
         .SPI_CLK(SPI_SCK),
         .SPI_SS_IO(CONF_DATA0),
         .SPI_MISO(SPI_DO),
@@ -418,7 +422,8 @@ user_io #(.STRLEN($size(CONF_STR)>>3), .FEATURES(32'h0 | (BIG_OSD << 13))) user_
 
 sd_card sd_card
 (
-        .clk_sys(clk_p),
+//      .clk_sys(clk_p),
+        .clk_sys(sdclock),
         .reset(status[2]),
         .sd_lba(sd_lba),
         .sd_rd(sd_rd),

@@ -93,6 +93,7 @@ set_global_assignment -name SEED 1
 set_global_assignment -name OPTIMIZE_POWER_DURING_SYNTHESIS "NORMAL COMPILATION"
 set_global_assignment -name PRE_MAPPING_RESYNTHESIS ON
 set_global_assignment -name CYCLONEII_OPTIMIZATION_TECHNIQUE BALANCED
+
 # ========CLOCK============
 set_location_assignment PIN_B14 -to CLOCK_50
 # ========VIDEO===========
@@ -306,6 +307,7 @@ set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to SDRAM_DQ[12]
 set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to SDRAM_DQ[13]
 set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to SDRAM_DQ[14]
 set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to SDRAM_DQ[15]
+
 # Fitter Assignments
 # ==================
 set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to SDRAM_A[0]
@@ -347,6 +349,7 @@ set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to SDRAM_n
 set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to SDRAM_nCS
 set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to SDRAM_CKE
 set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to SDRAM_CLK
+
 set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to VGA_R[5]
 set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to VGA_R[4]
 set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to VGA_R[3]
@@ -368,6 +371,20 @@ set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to VGA_B[0
 set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to VGA_HS
 set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to VGA_VS
 set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to LED
+
+set_global_assignment -name VERILOG_MACRO "SDRAM_WINBOND=1"
+set_global_assignment -name VERILOG_MACRO "SDRAM_ROWBITS=13"
+set_global_assignment -name VERILOG_MACRO "SDRAM_COLBITS=9"
+set_global_assignment -name VERILOG_MACRO "SDRAM_CL=2"
+set_global_assignment -name VERILOG_MACRO "SDRAM_tCKminCL2=7500"
+set_global_assignment -name VERILOG_MACRO "SDRAM_tRC=60000"
+set_global_assignment -name VERILOG_MACRO "SDRAM_tWR=2"
+set_global_assignment -name VERILOG_MACRO "SDRAM_tRP=15000"
+
+set_global_assignment -name VERILOG_MACRO "DEMISTIFY_POSEIDON_EP4CGX150=1"
+set_global_assignment -name VERILOG_MACRO "USE_CLOCK_50=1"
+set_global_assignment -name VERILOG_MACRO "DEMISTIFY=1"
+
 # ===========================
 # start DESIGN_PARTITION(Top)
 # ---------------------------
@@ -381,22 +398,6 @@ set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
 # =========================
 
 # =========================
-
-set_global_assignment -name VERILOG_MACRO "SDRAM_WINBOND=1"
-set_global_assignment -name VERILOG_MACRO "SDRAM_ROWBITS=13"
-set_global_assignment -name VERILOG_MACRO "SDRAM_COLBITS=9"
-set_global_assignment -name VERILOG_MACRO "SDRAM_CL=2"
-set_global_assignment -name VERILOG_MACRO "SDRAM_tCKminCL2=7500"
-set_global_assignment -name VERILOG_MACRO "SDRAM_tRC=60000"
-set_global_assignment -name VERILOG_MACRO "SDRAM_tWR=2"
-set_global_assignment -name VERILOG_MACRO "SDRAM_tRP=15000"
-
-#set_global_assignment -name VERILOG_MACRO "DEMISTIFY_POSEIDON_EP4CGX150=1"
-set_global_assignment -name VERILOG_MACRO "USE_CLOCK_50=1"
-#set_global_assignment -name VERILOG_MACRO "DEMISTIFY=1"
-
-# ==================
-
 set_global_assignment -name DSP_BLOCK_BALANCING "DSP BLOCKS"
 set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_RETIMING OFF
 set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_DUPLICATION OFF
@@ -428,8 +429,12 @@ set_global_assignment -name SYSTEMVERILOG_FILE "poseidon_top.sv"
 set_global_assignment -name VERILOG_FILE ip-components/pll.v
 
 set_global_assignment -name VERILOG_FILE config.v
+set_global_assignment -name VERILOG_FILE ../../hdl/common-config.v
 
 set_global_assignment -name VERILOG_FILE ../../hdl/topboard.v
+set_global_assignment -name VERILOG_FILE ../../hdl/topboard16.v
+set_global_assignment -name VERILOG_FILE ../../hdl/topboard22.v
+set_global_assignment -name VERILOG_FILE ../../hdl/mc1201-04.v
 set_global_assignment -name VERILOG_FILE ../../hdl/mc1201-02.v
 set_global_assignment -name VERILOG_FILE ../../hdl/mc1201-01.v
 set_global_assignment -name VERILOG_FILE ../../hdl/mc1260.v
@@ -469,6 +474,9 @@ set_global_assignment -name VERILOG_FILE ../../hdl/vm1/vm1_plm.v
 set_global_assignment -name VERILOG_FILE ../../hdl/vm2/vm2_wb.v
 set_global_assignment -name VERILOG_FILE ../../hdl/vm2/vm2_plm.v
 
+set_global_assignment -name VHDL_FILE ../../hdl/bram.vhd
+set_global_assignment -name VERILOG_FILE ip-components/memory.v
+
 set_global_assignment -name VERILOG_FILE ip-components/userrom.v
 set_global_assignment -name VERILOG_FILE ip-components/fontrom.v
 set_global_assignment -name VERILOG_FILE ip-components/vtmem.v
@@ -483,6 +491,8 @@ set_global_assignment -name QIP_FILE ip-components/kgdvram.qip
 set_global_assignment -name VERILOG_FILE mist-modules/osd.v
 set_global_assignment -name VERILOG_FILE mist-modules/user_io.v
 set_global_assignment -name VERILOG_FILE mist-modules/sd_card.v
+set_global_assignment -name VERILOG_FILE mist-modules/mist_video.v
+
 set_global_assignment -name SYSTEMVERILOG_FILE mist-modules/sdram.sv
 #set_global_assignment -name VERILOG_FILE ../MiST/sdram.v
 
@@ -498,4 +508,11 @@ set_global_assignment -name QIP_FILE ../MiST/mist-modules/mist.qip
 # ==================
 
 set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:build_id_verilog.tcl"
+
+set_global_assignment -name ENABLE_SIGNALTAP ON
+set_global_assignment -name USE_SIGNALTAP_FILE "stp-sdcard.stp"
+set_global_assignment -name SDC_FILE mc1201.sdc
+set_global_assignment -name SIGNALTAP_FILE stp3.stp
+set_global_assignment -name SIGNALTAP_FILE "stp-sdcard.stp"
+
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
